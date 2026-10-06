@@ -28,7 +28,7 @@
   const TOTAL_PARTICLES = 8;
   const TOTAL_STRANDS = 5;
   const REQ_MAG = 400;          // grossissement à atteindre
-  const ZOOM_RATE = 0.036;      // vitesse max du zoom (≈ 22 s en mise au point parfaite)
+  const ZOOM_RATE = 0.1;        // vitesse max du zoom (≈ 8 s image nette, ≈ 16 s image floue)
   const HOLD_TIME = 0.8;        // maintien de l'extracteur sur une particule (s)
   const HOLD_DECAY = 0.35;      // retombée de la jauge quand on la perd (s)
   const AUTH_TIME = 1.0;        // maintien sur l'empreinte (s)
@@ -606,14 +606,14 @@
     });
     k.addEventListener('pointermove', (e) => {
       if (!drag) return;
-      set(drag.v + ((drag.y - e.clientY) + (e.clientX - drag.x)) / (12 * geo.rem));
+      set(drag.v + ((drag.y - e.clientY) + (e.clientX - drag.x)) / (8 * geo.rem));
     });
     const end = () => { if (drag) { drag = null; k.classList.remove('grab'); } };
     k.addEventListener('pointerup', end); k.addEventListener('pointercancel', end); k.addEventListener('lostpointercapture', end);
     k.addEventListener('wheel', (e) => {
       if (!micActive()) return;
       e.preventDefault(); e.stopPropagation();
-      set(get() - Math.sign(e.deltaY) * 0.025);
+      set(get() - Math.sign(e.deltaY) * 0.05);
     }, { passive: false });
     k.addEventListener('keydown', (e) => {
       if (!micActive()) return;
@@ -653,13 +653,13 @@
 
   let lastBlur = -1;
   function microscopeTick(dt, now) {
-    st.fT = 0.5 + 0.30 * Math.sin(now * 0.00047 + st.ph1) + 0.12 * Math.sin(now * 0.00131 + st.ph2);
-    const sharp = clamp(1 - Math.abs(st.focus - st.fT) / 0.17, 0, 1);
+    st.fT = 0.5 + 0.14 * Math.sin(now * 0.00022 + st.ph1) + 0.04 * Math.sin(now * 0.0006 + st.ph2);   // dérive lente et faible
+    const sharp = clamp(1 - Math.abs(st.focus - st.fT) / 0.4, 0, 1);                                     // grande tolérance
     st.sharp = sharp;
-    const blur = +((1 - Math.pow(sharp, 0.7)) * 9).toFixed(1);
+    const blur = +((1 - Math.pow(sharp, 0.7)) * 5).toFixed(1);
     if (blur !== lastBlur) { lastBlur = blur; el.zoomStack.style.filter = blur > 0.1 ? `blur(${blur}px)` : 'none'; }
     const prev = st.z, dz = st.zT - st.z;
-    if (dz > 0) st.z += Math.min(dz, (sharp > 0.3 ? ZOOM_RATE * sharp : 0) * dt);
+    if (dz > 0) st.z += Math.min(dz, ZOOM_RATE * (0.5 + 0.5 * sharp) * dt);   // le zoom avance toujours, plus vite si l'image est nette
     else if (dz < 0) st.z += Math.max(dz, -0.14 * dt);
     const speed = dt > 0 ? Math.abs(st.z - prev) / dt : 0;
     if (speed > 0.003) { if (!snd.motor && S) snd.motor = S.motor(); if (snd.motor) snd.motor.set(clamp(speed / ZOOM_RATE, 0.15, 1)); }
@@ -695,7 +695,7 @@
       const y = h - 3 - clamp(v, -0.05, 1.05) * (h - 6);
       if (i) ctx.lineTo(t * w, y); else ctx.moveTo(t * w, y);
     }
-    const good = sharp > 0.45;
+    const good = sharp > 0.5;
     ctx.strokeStyle = good ? 'rgba(255,138,31,.35)' : 'rgba(150,172,210,.18)'; ctx.lineWidth = 4; ctx.stroke();
     ctx.strokeStyle = good ? '#ffb066' : 'rgba(150,172,210,.6)'; ctx.lineWidth = 1.4; ctx.stroke();
   }
@@ -1341,7 +1341,7 @@
     el.stage.addEventListener('wheel', (e) => {
       if (currentView() !== 'scope' || !micActive()) return;
       e.preventDefault();
-      const k = -Math.sign(e.deltaY) * Math.min(Math.abs(e.deltaY), 120) * 0.0008;
+      const k = -Math.sign(e.deltaY) * Math.min(Math.abs(e.deltaY), 120) * 0.0018;
       if (e.shiftKey) setFocus(st.focus + k); else setZoomTarget(st.zT + k);
     }, { passive: false });
     buildKnob(el.knobZoom); buildKnob(el.knobFocus);
