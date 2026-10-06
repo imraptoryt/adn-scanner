@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#070a12">
+<title>Analyse Génétique — Terminal Sovereign</title>
+<meta name="description" content="Terminal Sovereign : scanner ADN interactif pour serveur RP FiveM.">
+<link rel="icon" type="image/png" href="assets/img/sovereign-mark.png">
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+
+<main id="app" class="window" aria-label="Terminal Sovereign — Analyse génétique">
+  <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+  <div class="sweep" aria-hidden="true"></div>
+
+  <!-- ============ EN-TÊTE ============ -->
+  <header class="topbar">
+    <img class="sov-mark" src="assets/img/sovereign-mark.png" alt="">
+    <div class="tb-title">
+      <div class="eyebrow"><span class="dot"></span>TERMINAL SOVEREIGN — ACCÈS RESTREINT</div>
+      <h1>ANALYSE GÉNÉTIQUE</h1>
+      <div class="ru">ГЕНЕТИЧЕСКИЙ АНАЛИЗ · ТЕРМИНАЛ «СУВЕРЕН» · ДОСТУП ОГРАНИЧЕН</div>
+    </div>
+
+    <div class="tb-status">
+      <div class="kv"><span data-ru="ОБРАЗЕЦ">ÉCHANTILLON</span><b id="sampleId">—</b></div>
+      <div class="kv"><span data-ru="СОСТОЯНИЕ СКАНЕРА">ÉTAT DU SCANNER</span><b id="scannerState" class="state"><i></i><em>EN VEILLE</em></b></div>
+      <div class="kv"><span data-ru="ВРЕМЯ">HORODATAGE</span><b id="clock">—</b></div>
+    </div>
+
+    <img class="sov-word" src="assets/img/sovereign-wordmark.png" alt="Sovereign">
+    <button id="btnGuide" class="guide-btn" type="button">GUIDE</button>
+    <button id="btnClose" class="close-btn" type="button" aria-label="Fermer le terminal">
+      <img src="assets/img/close.png" alt="">
+    </button>
+  </header>
+
+  <div class="main">
+
+    <!-- ============ ZONE DE MANIPULATION ============ -->
+    <section class="panel stage-panel">
+      <div class="p-body">
+        <div class="stage-hud">
+          <span class="hud-mode"><i></i><b id="hudMode">ZONE D'ÉCHANTILLON</b></span>
+          <span class="hud-coords" id="hudCoords">X 000.00 · Y 000.00</span>
+          <span class="hud-counter" id="hudCounter"></span>
+        </div>
+
+        <div class="stage" id="stage">
+          <div class="grid-bg"></div>
+
+          <!-- ---- Vue échantillon / microscope ---- -->
+          <div class="view view-scope" id="viewScope">
+            <div class="scope" id="scope">
+              <img class="ring ring-a" src="assets/img/hud-ring.png" alt="">
+              <img class="ring ring-b" src="assets/img/hud-ring.png" alt="">
+              <div class="ticks"></div>
+              <div class="scope-inner" id="scopeInner">
+                <img class="layer dish" id="layerDish" src="assets/img/dish.webp" alt="Échantillon biologique" draggable="false">
+                <img class="layer cells" id="layerCells" src="assets/img/cells.webp" alt="" draggable="false">
+                <div class="layer helix" id="layerHelix">
+                  <img class="h-intact" id="helixIntact" src="assets/img/helix-intact.webp" alt="" draggable="false">
+                  <img class="h-broken" id="helixBroken" src="assets/img/helix-broken.webp" alt="" draggable="false">
+                  <div class="breaks" id="breaks"></div>
+                  <div class="residues" id="residues"></div>
+                </div>
+                <div id="particles" class="particles"></div>
+                <div class="reticle" id="reticle"><img src="assets/img/crosshair.png" alt="" draggable="false"></div>
+                <div class="scan-line"></div>
+                <div class="glitch-flash" id="glitchFlash"></div>
+              </div>
+              <div class="pick-ring" id="pickRing"></div>
+            </div>
+
+            <div class="reservoir" id="reservoir">
+              <span class="r-label" data-ru="РЕЗЕРВУАР">RÉSERVOIR</span>
+              <div class="r-body">
+                <img class="r-tube" id="rTube" src="assets/img/tube.png" alt="" draggable="false">
+                <div class="r-gauge" id="rGauge"></div>
+              </div>
+              <span class="r-count"><b id="rCount">0</b>/8</span>
+            </div>
+
+            <div class="mag-hud" id="magHud">
+              <div class="mag-top">
+                <span class="mag-label" data-ru="УВЕЛИЧЕНИЕ">GROSSISSEMENT</span>
+                <b class="mag-value" id="magValue">×10</b>
+              </div>
+              <div class="mag-slider">
+                <input type="range" id="magRange" min="0" max="1000" value="0" step="1" aria-label="Grossissement">
+              </div>
+              <div class="focus-row">
+                <span class="mag-label" data-ru="ФОКУС">MISE AU POINT</span>
+                <div class="mag-slider">
+                  <input type="range" id="focusRange" min="0" max="1000" value="500" step="1" aria-label="Mise au point">
+                </div>
+                <i class="sharp" id="sharpMeter"><u id="sharpBar"></u></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- ---- Mini-jeu de reconnexion ---- -->
+          <div class="view view-repair" id="viewRepair">
+            <div class="repair-head">
+              <div class="rh-title"><b>RECONNEXION DES BRINS</b><em>ВОССТАНОВЛЕНИЕ НИТЕЙ ДНК</em></div>
+            </div>
+            <div class="board" id="board">
+              <img class="board-bg" src="assets/img/helix-residue.webp" alt="" draggable="false">
+              <img class="board-frag f1" src="assets/img/frag-1.webp" alt="" draggable="false">
+              <img class="board-frag f2" src="assets/img/frag-4.webp" alt="" draggable="false">
+              <img class="board-frag f3" src="assets/img/frag-6.webp" alt="" draggable="false">
+              <img class="board-frag f4" src="assets/img/frag-3.webp" alt="" draggable="false">
+              <div class="col col-ends" id="ends"></div>
+              <div class="col col-sockets" id="sockets"></div>
+              <svg class="wires" id="wires" xmlns="http://www.w3.org/2000/svg"></svg>
+              <div class="launch-wrap" id="launchWrap"><button id="btnSequence" class="cta launch" type="button" disabled><img src="assets/img/fingerprint.png" alt=""><span data-ru="ЗАПУСТИТЬ СЕКВЕНИРОВАНИЕ">LANCER LE SÉQUENÇAGE</span></button></div>
+              <div class="board-done" id="boardDone"><b>INTÉGRITÉ RESTAURÉE</b><em>ЦЕЛОСТНОСТЬ ВОССТАНОВЛЕНА</em></div>
+            </div>
+          </div>
+
+          <!-- ---- Séquençage ---- -->
+          <div class="view view-seq" id="viewSeq">
+            <canvas id="seqCanvas"></canvas>
+            <div class="seq-ui">
+              <div class="seq-pct"><b id="seqPct">0</b><span>%</span></div>
+              <div class="seq-msg"><b id="seqMsg">Stabilisation de l'échantillon</b><em id="seqMsgRu">Стабилизация образца</em></div>
+              <div class="seq-bar"><i id="seqBar"></i></div>
+              <ol class="seq-list" id="seqList"></ol>
+            </div>
+          </div>
+
+          <!-- ---- Dossier ---- -->
+          <div class="view view-dossier" id="viewDossier">
+            <div class="dos-head">
+              <span class="dos-tag"><i></i>DOSSIER D'IDENTIFICATION · ЛИЧНОЕ ДЕЛО</span>
+              <span class="dos-ru">ЛИЧНОЕ ДЕЛО № <b id="dosFile">—</b></span>
+              <span class="dos-date" id="dosDate">—</span>
+            </div>
+            <div class="dos-grid">
+              <div class="dos-portrait">
+                <img class="fp" src="assets/img/fingerprint.png" alt="" draggable="false">
+                <img class="sil" src="assets/img/silhouette.png" alt="Silhouette" draggable="false">
+                <span class="match" id="dosMatchBadge">99,8 %</span>
+                <i class="pc tl"></i><i class="pc tr"></i><i class="pc bl"></i><i class="pc br"></i>
+              </div>
+              <div class="dos-main">
+                <div class="dos-name">
+                  <h3 id="dosName">—</h3>
+                  <span class="dos-id" id="dosId">#0000</span>
+                </div>
+                <div class="dos-ru-name" id="dosRuName"></div>
+                <div class="dos-cols">
+                  <dl class="dos-fields" id="dosFields"></dl>
+                  <section class="tox" id="toxBox">
+                    <header>
+                      <img src="assets/img/biohazard.png" alt="">
+                      <div><b>RAPPORT TOXICOLOGIQUE</b><em>ТОКСИКОЛОГИЧЕСКИЙ ОТЧЁТ</em></div>
+                    </header>
+                    <ul id="toxList"></ul>
+                  </section>
+                </div>
+                <div class="dos-extra" id="dosExtra"></div>
+              </div>
+            </div>
+            <div class="dos-actions">
+              <button id="btnNew" class="cta" type="button"><span data-ru="НОВЫЙ АНАЛИЗ">NOUVELLE ANALYSE</span></button>
+              <button id="btnCloseFile" class="cta ghost" type="button"><span data-ru="ЗАКРЫТЬ ДЕЛО">FERMER LE DOSSIER</span></button>
+            </div>
+          </div>
+
+          <!-- ---- Couches d'effets ---- -->
+          <svg class="beam" id="beam" xmlns="http://www.w3.org/2000/svg"><path id="beamPath" d=""/></svg>
+          <div class="fx" id="fx"></div>
+          <div class="tool-cursor" id="toolCursor"><img src="" alt=""></div>
+          <div class="toast" id="toast" role="status"></div>
+          <div class="reset-overlay" id="resetOverlay"><b>RÉINITIALISATION</b><em>Сброс системы…</em></div>
+        </div>
+</div>
+    </section>
+
+    <!-- ============ MESURES / JOURNAL ============ -->
+    <aside class="panel right">
+      <div class="p-body">
+        <h2 class="sec">MESURES <i>ИЗМЕРЕНИЯ</i></h2>
+        <div class="metrics">
+          <div class="metric" id="mParticles"><span data-ru="ЧАСТИЦЫ">PARTICULES</span><b>0<small>/8</small></b><i class="mbar"><u></u></i></div>
+          <div class="metric" id="mMag"><span data-ru="УВЕЛИЧЕНИЕ">GROSSISSEMENT</span><b>—</b><i class="mbar"><u></u></i></div>
+          <div class="metric" id="mStrands"><span data-ru="НИТИ ВОССТАНОВЛЕНЫ">BRINS RECONNECTÉS</span><b>0<small>/5</small></b><i class="mbar"><u></u></i></div>
+          <div class="metric" id="mIntegrity"><span data-ru="ЦЕЛОСТНОСТЬ ДНК">INTÉGRITÉ ADN</span><b>—</b><i class="mbar"><u></u></i></div>
+          <div class="metric wide" id="mResidue"><span data-ru="ХИМИЧЕСКИЕ ОСТАТКИ">RÉSIDUS CHIMIQUES</span><b class="txt">NON ÉVALUÉS</b></div>
+          <div class="metric wide" id="mTox"><span data-ru="ТОКСИКОЛОГИЧЕСКОЕ ЗАКЛЮЧЕНИЕ">CONCLUSION TOXICOLOGIQUE</span><b class="txt"><img src="assets/img/biohazard.png" alt="">VERROUILLÉE</b></div>
+        </div>
+
+        <h2 class="sec">PROGRESSION <i>ПРОГРЕСС</i></h2>
+        <div class="progress">
+          <div class="pg-top"><b id="pgPct">0<small>%</small></b><span id="pgStep">ÉTAPE 1 / 5</span></div>
+          <div class="pg-bar"><i id="pgBar"></i></div>
+        </div>
+
+        <h2 class="sec">JOURNAL D'ANALYSE <i>ЖУРНАЛ</i></h2>
+        <div class="log" id="log"></div>
+      </div>
+    </aside>
+
+  <!-- ============ GUIDE (même page, même fenêtre) ============ -->
+  <div class="guide" id="guide" aria-hidden="true">
+    <aside class="g-nav">
+      <div class="g-brand">
+        <img src="assets/img/sovereign-mark.png" alt="">
+        <div><b>GUIDE</b><em>РУКОВОДСТВО</em></div>
+      </div>
+      <nav id="gToc">
+        <a href="#g-extraction">01 · Extraction</a>
+        <a href="#g-microscope">02 · Microscope</a>
+        <a href="#g-reconnexion">03 · Reconnexion</a>
+        <a href="#g-fin">04 · Séquençage &amp; dossier</a>
+        <a href="#g-trad">05 · Traductions</a>
+      </nav>
+      <button class="g-back" type="button" id="gBack">RETOUR AU SCANNER</button>
+    </aside>
+
+    <div class="g-doc" id="gDoc">
+      <header class="g-hero">
+        <div class="g-eyebrow"><i></i>TERMINAL SOVEREIGN</div>
+        <h1>COMMENT JOUER</h1>
+        <p class="ru">КАК ИГРАТЬ · ГЕНЕТИЧЕСКИЙ АНАЛИЗ</p>
+      </header>
+
+      <section id="g-extraction">
+        <h2><span>01</span>Extraction</h2>
+        <ol class="steps">
+          <li>La pipette suit votre souris. Il faut capturer les <b>8 particules</b> orange.</li>
+          <li>Elles filent dans l'échantillon et <b>s'écartent</b> quand la pipette approche : coincez-les contre le bord.</li>
+          <li>Posez la pointe sur une particule et <b>maintenez environ 0,8 s</b> : la jauge circulaire se remplit. Si vous la perdez, elle retombe.</li>
+          <li>À 8/8, le microscope démarre tout seul.</li>
+        </ol>
+      </section>
+
+      <section id="g-microscope">
+        <h2><span>02</span>Microscope</h2>
+        <ol class="steps">
+          <li>Deux réglages : le <b>zoom</b> (molette ou curseur du haut) et la <b>mise au point</b> (curseur du bas, ou <kbd>Maj</kbd> + molette).</li>
+          <li>Le point de netteté <b>dérive en permanence</b> : suivez-le avec la mise au point pour garder l'image nette (jauge verte).</li>
+          <li>Le zoom <b>n'avance que si l'image est nette</b>. L'objectif est <b>×400</b> ; comptez environ une demi-minute.</li>
+          <li>À ×400, les brins cassés apparaissent, puis la reconnexion s'ouvre toute seule.</li>
+        </ol>
+      </section>
+
+      <section id="g-reconnexion">
+        <h2><span>03</span>Reconnexion</h2>
+        <ol class="steps">
+          <li>Faites glisser le <b>rond</b> d'une extrémité (à gauche) jusqu'à un ancrage (à droite). 5 brins à relier.</li>
+          <li>Une connexion est bonne si <b>le symbole est le même</b> <i>et</i> si la <b>base est complémentaire</b>.</li>
+          <li>Il y a 7 ancrages : <b>2 sont des leurres</b> qui ne correspondent à aucun brin.</li>
+          <li>Plusieurs brins partagent le même symbole : seule la base les distingue.</li>
+          <li>Une erreur fait <b>réorganiser</b> les ancrages encore libres.</li>
+        </ol>
+        <div class="rules">
+          <div><b>Bases complémentaires</b><p class="pair"><span>A</span>↔<span>T</span> <span>C</span>↔<span>G</span></p></div>
+          <div><b>Symboles possibles</b><p class="sym">
+            <svg viewBox="0 0 24 24"><path d="M12 2 22 12 12 22 2 12Z"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M12 3 22 20H2Z"/></svg>
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/></svg>
+            <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16"/></svg>
+            <svg viewBox="0 0 24 24"><path d="M9 2h6v7h7v6h-7v7H9v-7H2V9h7Z"/></svg></p></div>
+        </div>
+      </section>
+
+      <section id="g-fin">
+        <h2><span>04</span>Séquençage &amp; dossier</h2>
+        <ol class="steps">
+          <li>Quand les 5 brins sont reliés, cliquez sur <b>Lancer le séquençage</b> et attendez la fin du chargement.</li>
+          <li>Le dossier s'ouvre avec le rapport toxicologique.</li>
+          <li>Votre progression est <b>sauvegardée automatiquement</b> sur cet appareil : fermer le terminal ne la perd pas. <b>Nouvelle analyse</b> repart de zéro.</li>
+        </ol>
+      </section>
+
+      <section id="g-trad">
+        <h2><span>05</span>Traductions</h2>
+        <table>
+          <tr><th>Analyse génétique</th><td>Генетический анализ</td></tr>
+          <tr><th>Terminal Sovereign</th><td>Терминал «Суверен»</td></tr>
+          <tr><th>Accès restreint</th><td>Доступ ограничен</td></tr>
+          <tr><th>Échantillon</th><td>Образец</td></tr>
+          <tr><th>État du scanner</th><td>Состояние сканера</td></tr>
+          <tr><th>En veille / Prêt</th><td>Ожидание / Готов</td></tr>
+          <tr><th>Extraction</th><td>Извлечение</td></tr>
+          <tr><th>Observation</th><td>Наблюдение</td></tr>
+          <tr><th>Reconnexion</th><td>Сращивание</td></tr>
+          <tr><th>Séquençage</th><td>Секвенирование</td></tr>
+          <tr><th>Profil identifié</th><td>Профиль установлен</td></tr>
+          <tr><th>Particules</th><td>Частицы</td></tr>
+          <tr><th>Réservoir</th><td>Резервуар</td></tr>
+          <tr><th>Grossissement</th><td>Увеличение</td></tr>
+          <tr><th>Mise au point</th><td>Фокус</td></tr>
+          <tr><th>Brin</th><td>Нить</td></tr>
+          <tr><th>Ancrage</th><td>Якорь</td></tr>
+          <tr><th>Brins reconnectés</th><td>Восстановленные нити</td></tr>
+          <tr><th>Intégrité ADN</th><td>Целостность ДНК</td></tr>
+          <tr><th>Résidus chimiques</th><td>Химические остатки</td></tr>
+          <tr><th>Conclusion toxicologique</th><td>Токсикологическое заключение</td></tr>
+          <tr><th>Verrouillée</th><td>Заблокировано</td></tr>
+          <tr><th>Progression</th><td>Прогресс</td></tr>
+          <tr><th>Journal d'analyse</th><td>Журнал анализа</td></tr>
+          <tr><th>Connexion refusée</th><td>Соединение отклонено</td></tr>
+          <tr><th>Lancer le séquençage</th><td>Запустить секвенирование</td></tr>
+          <tr><th>Dossier d'identification</th><td>Личное дело</td></tr>
+          <tr><th>Indicatif / alias</th><td>Позывной</td></tr>
+          <tr><th>Date de naissance</th><td>Дата рождения</td></tr>
+          <tr><th>Sexe : Femme / Homme</th><td>Пол: Женский / Мужской</td></tr>
+          <tr><th>Groupe sanguin</th><td>Группа крови</td></tr>
+          <tr><th>Affiliation</th><td>Принадлежность</td></tr>
+          <tr><th>Inconnu</th><td>Неизвестно</td></tr>
+          <tr><th>District</th><td>Район</td></tr>
+          <tr><th>Correspondance ADN</th><td>Совпадение ДНК</td></tr>
+          <tr><th>Statut : décédé</th><td>Статус: погиб</td></tr>
+          <tr><th>Dernière localisation</th><td>Последнее местонахождение</td></tr>
+          <tr><th>Signes particuliers</th><td>Особые приметы</td></tr>
+          <tr><th>Contact</th><td>Контакт</td></tr>
+          <tr><th>Rapport toxicologique</th><td>Токсикологический отчёт</td></tr>
+          <tr><th>Résultat</th><td>Результат</td></tr>
+          <tr><th>Cause probable du décès</th><td>Вероятная причина смерти</td></tr>
+          <tr><th>Conclusion</th><td>Заключение</td></tr>
+          <tr><th>Ancienneté présumée du décès</th><td>Предполагаемая давность смерти</td></tr>
+          <tr><th>Date présumée du décès</th><td>Предполагаемая дата смерти</td></tr>
+          <tr><th>Nouvelle analyse</th><td>Новый анализ</td></tr>
+          <tr><th>Fermer le dossier</th><td>Закрыть дело</td></tr>
+        </table>
+      </section>
+
+      <footer>TERMINAL SOVEREIGN · КОНЕЦ ДОКУМЕНТА</footer>
+    </div>
+  </div>
+</main>
+
+<!-- Infobulle globale -->
+<div class="tip" id="tip"></div>
+
+<!-- Écran affiché hors FiveM quand le terminal est fermé -->
+<div class="closed" id="closed">
+  <div class="closed-box">
+    <img src="assets/img/sovereign-mark.png" alt="">
+    <b>SESSION TERMINÉE</b>
+    <em>Сеанс завершён · terminal verrouillé</em>
+    <button id="btnReopen" class="cta" type="button"><span>ROUVRIR LE TERMINAL</span></button>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

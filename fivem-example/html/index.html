@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<style>
+  html,body{margin:0;height:100%;background:transparent;overflow:hidden}
+  #root{display:none;position:fixed;inset:0}
+  iframe{width:100%;height:100%;border:0;background:transparent}
+</style>
+</head>
+<body>
+<div id="root">
+  <!-- Remplacez par l'adresse de votre GitHub Pages -->
+  <iframe id="scanner" src="https://VOTRE-PSEUDO.github.io/adn-scanner/"></iframe>
+</div>
+<script>
+  const root = document.getElementById('root');
+  const frame = document.getElementById('scanner');
+
+  window.addEventListener('message', (e) => {
+    const d = e.data || {};
+    if (d.source === 'adn-scanner' && d.action === 'close') {   // fermeture demandée par le terminal
+      root.style.display = 'none';
+      fetch(`https://${GetParentResourceName()}/close`, { method: 'POST', body: '{}' });
+    } else if (d.action === 'open') {                           // envoyé par client.lua
+      root.style.display = 'block';
+      frame.contentWindow.postMessage({ action: 'open', fresh: false }, '*');
+      frame.focus();
+    } else if (d.action === 'hide') {
+      root.style.display = 'none';
+    }
+  });
+</script>
+</body>
+</html>
