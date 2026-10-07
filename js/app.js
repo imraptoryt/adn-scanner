@@ -29,8 +29,8 @@
   const TOTAL_STRANDS = 5;
   const REQ_MAG = 400;          // grossissement à atteindre
   const ZOOM_RATE = 0.1;        // vitesse max du zoom (≈ 8 s image nette, ≈ 16 s image floue)
-  const HOLD_TIME = 0.8;        // maintien de l'extracteur sur une particule (s)
-  const HOLD_DECAY = 0.35;      // retombée de la jauge quand on la perd (s)
+  const HOLD_TIME = 0.3;        // maintien de l'extracteur sur une particule (s)
+  const HOLD_DECAY = 1.5;       // retombée de la jauge quand on la perd (s) — lente : on ne perd pas sa progression
   const AUTH_TIME = 1.0;        // maintien sur l'empreinte (s)
   const STORE_KEY = 'sovereign-adn-scanner-v3';
   const magFromZ = (z) => Math.round(10 * Math.pow(100, z));
@@ -447,7 +447,7 @@
       node.className = 'particle';
       node.innerHTML = `<img src="assets/img/orb-${(i % 7) + 1}.webp" alt="" draggable="false">`;
       el.particles.appendChild(node);
-      const sp = rand(0.05, 0.085), dir = rand(0, Math.PI * 2);
+      const sp = rand(0.016, 0.028), dir = rand(0, Math.PI * 2);   // dérive lente
       st.particles.push({ i, node, collected: false, x: Math.cos(ang) * r, y: Math.sin(ang) * r,
         vx: Math.cos(dir) * sp, vy: Math.sin(dir) * sp, base: sp, charge: 0, w: 0,
         size: rand(0.105, 0.135), ph: rand(0, 6.28), near: false });
@@ -472,11 +472,11 @@
     for (const p of st.particles) {
       if (p.collected) continue;
       if (!renderOnly) {
-        const turn = (Math.random() - 0.5) * 3.4 * dt, c = Math.cos(turn), s = Math.sin(turn);
+        const turn = (Math.random() - 0.5) * 1.4 * dt, c = Math.cos(turn), s = Math.sin(turn);
         let vx = p.vx * c - p.vy * s, vy = p.vx * s + p.vy * c;
         if (flee) {                                    // la particule s'écarte de la pipette
           const fx = p.x - flee.x, fy = p.y - flee.y, fd = Math.hypot(fx, fy), R = 0.13;
-          if (fd < R && fd > 0.0001) { const k = (1 - fd / R) * 1.2; vx += (fx / fd) * k * dt; vy += (fy / fd) * k * dt; }
+          if (fd < R && fd > 0.0001) { const k = (1 - fd / R) * 0.12; vx += (fx / fd) * k * dt; vy += (fy / fd) * k * dt; }
         }
         const sp = Math.hypot(vx, vy) || 0.0001, cur = clamp(sp, 0, 0.24);
         const ns = cur + (p.base - cur) * Math.min(1, dt * 1.4);
@@ -492,7 +492,7 @@
       const cx = geo.cx + p.x * W, cy = geo.cy + p.y * W;
       if (!renderOnly) {
         let locked = false;
-        if (inside) locked = Math.hypot(ptr.x - cx, ptr.y - cy) < w * 0.42 + 0.35 * geo.rem;
+        if (inside) locked = Math.hypot(ptr.x - cx, ptr.y - cy) < w * 0.65 + 0.9 * geo.rem;   // zone de capture large
         p.charge = clamp(p.charge + (locked ? dt / HOLD_TIME : -dt / HOLD_DECAY), 0, 1);
         const near = p.charge > 0.01;
         if (near !== p.near) { p.near = near; p.node.classList.toggle('near', near); }
@@ -1338,6 +1338,17 @@
     // zone de manipulation
     el.stage.addEventListener('pointermove', onStageMove);
     el.stage.addEventListener('pointerleave', onStageLeave);
+    el.stage.addEventListener('pointerdown', (e) => {
+      if (bootActive || currentView() !== 'scope' || st.step !== 1 || st.tool !== 'extractor') return;
+      ptr.x = e.clientX - geo.sl; ptr.y = e.clientY - geo.st;
+      let best = null, bd = 1e9;
+      for (const p of st.particles) {
+        if (p.collected) continue;
+        const cx = geo.cx + p.x * geo.W, cy = geo.cy + p.y * geo.W, d = Math.hypot(ptr.x - cx, ptr.y - cy);
+        if (d < p.size * geo.W * 0.8 + 1.4 * geo.rem && d < bd) { bd = d; best = { p, cx, cy }; }
+      }
+      if (best) collectParticle(best.p, best.cx, best.cy, best.p.size * geo.W);
+    });
     el.stage.addEventListener('wheel', (e) => {
       if (currentView() !== 'scope' || !micActive()) return;
       e.preventDefault();
