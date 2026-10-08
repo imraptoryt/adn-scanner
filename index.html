@@ -97,19 +97,11 @@
 
             <div class="mic-panel" id="micPanel">
               <div class="mag-read"><i>×</i><b id="magValue">10</b><em id="magReq"></em></div>
-              <div class="knobs">
-                <div class="knob" id="knobZoom" tabindex="0" role="slider" aria-label="Grossissement" aria-valuemin="0" aria-valuemax="100">
-                  <svg class="k-ticks" viewBox="0 0 100 100" aria-hidden="true"></svg>
-                  <div class="k-cap"><i></i></div>
-                  <span class="k-lab">ZOOM<em>УВЕЛИЧЕНИЕ</em></span>
-                </div>
-                <div class="knob" id="knobFocus" tabindex="0" role="slider" aria-label="Mise au point" aria-valuemin="0" aria-valuemax="100">
-                  <svg class="k-ticks" viewBox="0 0 100 100" aria-hidden="true"></svg>
-                  <div class="k-cap"><i></i></div>
-                  <span class="k-lab">FOCUS<em>ФОКУС</em></span>
-                </div>
+              <div class="zoom-bar">
+                <input type="range" id="zoomRange" min="0" max="1000" value="0" step="1" aria-label="Grossissement">
+                <i class="zoom-target"></i>
               </div>
-              <canvas class="focus-scope" id="focusScope"></canvas>
+              <div class="zoom-lab"><span>×10</span><span>ZOOM<em>УВЕЛИЧЕНИЕ</em></span><span>×1000</span></div>
             </div>
           </div>
 
@@ -273,10 +265,8 @@
         <section id="g-microscope">
           <h2><span>02</span>Microscope</h2>
           <ol class="steps">
-            <li>Deux molettes : <b>ZOOM</b> et <b>FOCUS</b>. Faites-les tourner en glissant dessus (haut / bas), ou avec la roulette de la souris au-dessus.</li>
-            <li>La roulette sur l'image règle le zoom ; <kbd>Maj</kbd> + roulette règle le focus.</li>
-            <li>Le point de netteté bouge un peu : un petit coup de FOCUS suffit à garder l'image nette (signal orange).</li>
-            <li>Tournez le ZOOM à fond : le grossissement monte tout seul jusqu'à <b>×400</b>, plus vite si l'image est nette (quelques secondes).</li>
+            <li>Faites glisser la <b>barre de zoom</b> vers la droite (ou utilisez la roulette de la souris sur l'image).</li>
+            <li>Au repère <b>×400</b>, les brins cassés apparaissent, puis la reconnexion s'ouvre toute seule.</li>
           </ol>
         </section>
 
@@ -321,7 +311,6 @@
             <tr><th>Séquençage</th><td>Секвенирование</td></tr>
             <tr><th>Particules</th><td>Частицы</td></tr>
             <tr><th>Grossissement / zoom</th><td>Увеличение</td></tr>
-            <tr><th>Mise au point</th><td>Фокус</td></tr>
             <tr><th>Brin</th><td>Нить</td></tr>
             <tr><th>Ancrage</th><td>Якорь</td></tr>
             <tr><th>Intégrité</th><td>Целостность</td></tr>

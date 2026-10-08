@@ -28,7 +28,6 @@
   const TOTAL_PARTICLES = 8;
   const TOTAL_STRANDS = 5;
   const REQ_MAG = 400;          // grossissement à atteindre
-  const ZOOM_RATE = 0.1;        // vitesse max du zoom (≈ 8 s image nette, ≈ 16 s image floue)
   const HOLD_TIME = 0.3;        // maintien de l'extracteur sur une particule (s)
   const HOLD_DECAY = 1.5;       // retombée de la jauge quand on la perd (s) — lente : on ne perd pas sa progression
   const AUTH_TIME = 1.0;        // maintien sur l'empreinte (s)
@@ -63,7 +62,7 @@
     breaks: $('#breaks'), residues: $('#residues'), particles: $('#particles'),
     glitch: $('#glitchFlash'), iris: $('#iris'), scaleTxt: $('#scaleTxt'),
     reservoir: $('#reservoir'), rTube: $('#rTube'), rGauge: $('#rGauge'), rCount: $('#rCount'),
-    micPanel: $('#micPanel'), magValue: $('#magValue'), magReq: $('#magReq'), knobZoom: $('#knobZoom'), knobFocus: $('#knobFocus'), focusScope: $('#focusScope'),
+    micPanel: $('#micPanel'), magValue: $('#magValue'), magReq: $('#magReq'), zoomRange: $('#zoomRange'),
     views: { scope: $('#viewScope'), repair: $('#viewRepair'), seq: $('#viewSeq'), dossier: $('#viewDossier') },
     board: $('#board'), ends: $('#ends'), sockets: $('#sockets'), wires: $('#wires'), boardDone: $('#boardDone'),
     launch: $('#launchWrap'), btnSequence: $('#btnSequence'),
@@ -141,7 +140,7 @@
     return {
       step: 1, tool: 'extractor',
       particles: [], extracted: 0,
-      z: 0, zT: 0, focus: 0.5, fT: 0.5, sharp: 1, ph1: rand(0, 6.28), ph2: rand(0, 6.28), revealed: false,
+      z: 0, zT: 0, revealed: false,
       ends, socks, links: {}, fixed: 0, warned: false, drag: null,
       seq: { running: false, p: 0, dur: 0, t0: 0, msg: -1, finishing: false },
       complete: false, toxShown: false,
@@ -245,7 +244,7 @@
     geo.W = ir.width; geo.R = ir.width / 2;
     geo.cx = ir.left - sr.left + ir.width / 2; geo.cy = ir.top - sr.top + ir.height / 2;
     geo.rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-    [el.focusScope, el.seqCanvas, el.baseCanvas].forEach((c) => { c._w = c.clientWidth; c._h = c.clientHeight; });
+    [el.seqCanvas, el.baseCanvas].forEach((c) => { c._w = c.clientWidth; c._h = c.clientHeight; });
     geo.curW = el.toolCursor.offsetWidth; geo.curH = el.toolCursor.firstElementChild.offsetHeight || geo.curW * 1.2;
   }
   function onResize() {
@@ -299,7 +298,8 @@
     el.micPanel.classList.toggle('locked', st.step !== 2);
     el.magReq.textContent = st.revealed ? `×${REQ_MAG} ✓` : `CIBLE ×${REQ_MAG}`;
     el.magReq.classList.toggle('ok', st.revealed);
-    renderKnob(el.knobZoom, st.zT); renderKnob(el.knobFocus, st.focus);
+    el.zoomRange.disabled = st.step !== 2;
+    syncZoomBar();
 
     const canSeq = st.step === 4 && !st.seq.running && !st.complete;
     el.btnSequence.disabled = !canSeq;
@@ -580,58 +580,15 @@
   }
   const micActive = () => st.step === 2 && st.tool === 'microscope' && !bootActive && !guideOpen();
 
-  function buildKnob(k) {
-    const svg = $('.k-ticks', k); let h = '';
-    const N = 28;
-    for (let i = 0; i <= N; i++) {
-      const a = (-135 + i * 270 / N - 90) * Math.PI / 180, r1 = i % 7 === 0 ? 39 : 43;
-      h += `<line x1="${(50 + Math.cos(a) * r1).toFixed(2)}" y1="${(50 + Math.sin(a) * r1).toFixed(2)}" x2="${(50 + Math.cos(a) * 48).toFixed(2)}" y2="${(50 + Math.sin(a) * 48).toFixed(2)}"/>`;
-    }
-    svg.innerHTML = h;
-    k._lines = $$('line', svg); k._n = -1;
-  }
-  function renderKnob(k, v) {
-    k.style.setProperty('--a', (-135 + v * 270).toFixed(1) + 'deg');
-    const n = Math.round(v * (k._lines.length - 1));
-    if (k._n !== n) { k._lines.forEach((l, i) => l.classList.toggle('on', i <= n)); k._n = n; }
-    k.setAttribute('aria-valuenow', Math.round(v * 100));
-  }
-  function bindKnob(k, get, set) {
-    let drag = null;
-    k.addEventListener('pointerdown', (e) => {
-      if (!micActive()) return;
-      e.preventDefault(); try { k.setPointerCapture(e.pointerId); } catch (x) { /* pointeur synthétique */ }
-      drag = { x: e.clientX, y: e.clientY, v: get() };
-      k.classList.add('grab'); sfx('click');
-    });
-    k.addEventListener('pointermove', (e) => {
-      if (!drag) return;
-      set(drag.v + ((drag.y - e.clientY) + (e.clientX - drag.x)) / (8 * geo.rem));
-    });
-    const end = () => { if (drag) { drag = null; k.classList.remove('grab'); } };
-    k.addEventListener('pointerup', end); k.addEventListener('pointercancel', end); k.addEventListener('lostpointercapture', end);
-    k.addEventListener('wheel', (e) => {
-      if (!micActive()) return;
-      e.preventDefault(); e.stopPropagation();
-      set(get() - Math.sign(e.deltaY) * 0.05);
-    }, { passive: false });
-    k.addEventListener('keydown', (e) => {
-      if (!micActive()) return;
-      const d = e.key === 'ArrowUp' || e.key === 'ArrowRight' ? 0.02 : e.key === 'ArrowDown' || e.key === 'ArrowLeft' ? -0.02 : 0;
-      if (d) { e.preventDefault(); set(get() + d); }
-    });
+  function syncZoomBar() {
+    el.zoomRange.value = Math.round(st.zT * 1000);
+    el.zoomRange.style.setProperty('--p', (st.zT * 100).toFixed(1) + '%');
   }
   function setZoomTarget(v) {
     if (!micActive()) return;
     const nv = clamp(v, 0, 1);
     if (Math.floor(nv * 40) !== Math.floor(st.zT * 40)) tickSnd();
-    st.zT = nv; renderKnob(el.knobZoom, nv);
-  }
-  function setFocus(v) {
-    if (!micActive()) return;
-    const nv = clamp(v, 0, 1);
-    if (Math.floor(nv * 50) !== Math.floor(st.focus * 50)) tickSnd();
-    st.focus = nv; renderKnob(el.knobFocus, nv);
+    st.zT = nv; syncZoomBar();
   }
 
   function applyZoom() {
@@ -651,24 +608,20 @@
     return mag;
   }
 
-  let lastBlur = -1;
-  function microscopeTick(dt, now) {
-    st.fT = 0.5 + 0.14 * Math.sin(now * 0.00022 + st.ph1) + 0.04 * Math.sin(now * 0.0006 + st.ph2);   // dérive lente et faible
-    const sharp = clamp(1 - Math.abs(st.focus - st.fT) / 0.4, 0, 1);                                     // grande tolérance
-    st.sharp = sharp;
-    const blur = +((1 - Math.pow(sharp, 0.7)) * 5).toFixed(1);
-    if (blur !== lastBlur) { lastBlur = blur; el.zoomStack.style.filter = blur > 0.1 ? `blur(${blur}px)` : 'none'; }
-    const prev = st.z, dz = st.zT - st.z;
-    if (dz > 0) st.z += Math.min(dz, ZOOM_RATE * (0.5 + 0.5 * sharp) * dt);   // le zoom avance toujours, plus vite si l'image est nette
-    else if (dz < 0) st.z += Math.max(dz, -0.14 * dt);
+  /* zoom simple : la barre fixe le grossissement, l'image suit en douceur */
+  function microscopeTick(dt) {
+    const prev = st.z;
+    st.z += (st.zT - st.z) * Math.min(1, dt * 5);
+    if (Math.abs(st.zT - st.z) < 0.0005) st.z = st.zT;
     const speed = dt > 0 ? Math.abs(st.z - prev) / dt : 0;
-    if (speed > 0.003) { if (!snd.motor && S) snd.motor = S.motor(); if (snd.motor) snd.motor.set(clamp(speed / ZOOM_RATE, 0.15, 1)); }
+    if (speed > 0.01) { if (!snd.motor && S) snd.motor = S.motor(); if (snd.motor) snd.motor.set(clamp(speed / 0.6, 0.15, 1)); }
     else if (snd.motor) { snd.motor.stop(); snd.motor = null; }
-    const mag = applyZoom();
-    updateHudCounter();
-    drawFocusScope(now, sharp);
-    if (mag >= REQ_MAG && !st.revealed) reveal();
-    if (speed > 0) saveSoon();
+    if (st.z !== prev) {
+      const mag = applyZoom();
+      updateHudCounter();
+      if (mag >= REQ_MAG && !st.revealed) reveal();
+      saveSoon();
+    }
   }
 
   function fitCanvas(cv) {
@@ -677,34 +630,11 @@
     const ctx = cv._ctx || (cv._ctx = cv.getContext('2d')); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     return { ctx, w, h };
   }
-  const PEAKS = [0.14, 0.31, 0.47, 0.62, 0.8, 0.92];
-  function drawFocusScope(now, sharp) {
-    const { ctx, w, h } = fitCanvas(el.focusScope);
-    if (!w) return;
-    ctx.clearRect(0, 0, w, h);
-    ctx.strokeStyle = 'rgba(150,172,210,.1)'; ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let i = 1; i < 8; i++) { ctx.moveTo(i * w / 8, 0); ctx.lineTo(i * w / 8, h); }
-    ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2); ctx.stroke();
-    const wd = lerp(0.07, 0.009, sharp), amp = 0.22 + 0.78 * sharp;
-    ctx.beginPath();
-    for (let i = 0; i <= 120; i++) {
-      const t = i / 120; let v = 0;
-      for (const pk of PEAKS) v += Math.exp(-((t - pk) * (t - pk)) / (2 * wd * wd));
-      v = v * amp / (1 + (1 - sharp) * 1.4) + (Math.random() - 0.5) * 0.12 * (1 - sharp) + Math.sin(t * 30 + now * 0.006) * 0.05 * (1 - sharp);
-      const y = h - 3 - clamp(v, -0.05, 1.05) * (h - 6);
-      if (i) ctx.lineTo(t * w, y); else ctx.moveTo(t * w, y);
-    }
-    const good = sharp > 0.5;
-    ctx.strokeStyle = good ? 'rgba(255,138,31,.35)' : 'rgba(150,172,210,.18)'; ctx.lineWidth = 4; ctx.stroke();
-    ctx.strokeStyle = good ? '#ffb066' : 'rgba(150,172,210,.6)'; ctx.lineWidth = 1.4; ctx.stroke();
-  }
-
   function reveal() {
     if (st.revealed) return;
     st.revealed = true;
     el.layerHelix.classList.add('revealed');
-    el.zoomStack.style.filter = 'none'; lastBlur = 0;
+    el.zoomStack.style.filter = 'none';
     restartClass(el.scope, 'glitch', 800); restartClass(el.glitch, 'on', 800);
     glitch(); sfx('alarm');
     st.step = 3; st.tool = null;
@@ -1161,7 +1091,7 @@
       resetDossierFx();
       el.dos.toxList.innerHTML = '';
       el.fx.innerHTML = '';
-      el.zoomStack.style.filter = 'none'; lastBlur = 0;
+      el.zoomStack.style.filter = 'none';
       el.tractor.style.opacity = 0; el.tractorCore.style.opacity = 0;
       el.seqPct.textContent = '0'; el.seqBar.style.width = '0%';
       el.cand.classList.remove('locked');
@@ -1227,7 +1157,7 @@
   document.addEventListener('pointerover', (e) => {
     const t = e.target.closest && e.target.closest('[data-tip]');
     if (t && t.dataset.tip) { el.tip.innerHTML = t.dataset.tip; el.tip.classList.add('on'); tipOn = true; moveTip(e); }
-    const b = e.target.closest && e.target.closest('.cta:not(:disabled),.guide-btn,.icon-btn,.close-btn,.knob,#gToc a,.g-back');
+    const b = e.target.closest && e.target.closest('.cta:not(:disabled),.guide-btn,.icon-btn,.close-btn,#zoomRange,#gToc a,.g-back');
     if (b && !b.contains(e.relatedTarget)) { const n = performance.now(); if (n - snd.lastHover > 60) { snd.lastHover = n; sfx('hover'); } }
   });
   document.addEventListener('pointermove', (e) => {
@@ -1268,7 +1198,7 @@
       const view = currentView();
       if (view === 'scope' && st.step === 1) extractionTick(dt, now);
       else if (snd.suck) { snd.suck.stop(); snd.suck = null; }
-      if (view === 'scope' && st.step === 2 && st.tool === 'microscope') microscopeTick(dt, now);
+      if (view === 'scope' && st.step === 2 && st.tool === 'microscope') microscopeTick(dt);
       else if (snd.motor) { snd.motor.stop(); snd.motor = null; }
       if (st.seq.running) seqTick(now, dt);
     }
@@ -1353,11 +1283,10 @@
       if (currentView() !== 'scope' || !micActive()) return;
       e.preventDefault();
       const k = -Math.sign(e.deltaY) * Math.min(Math.abs(e.deltaY), 120) * 0.0018;
-      if (e.shiftKey) setFocus(st.focus + k); else setZoomTarget(st.zT + k);
+      setZoomTarget(st.zT + k);
     }, { passive: false });
-    buildKnob(el.knobZoom); buildKnob(el.knobFocus);
-    bindKnob(el.knobZoom, () => st.zT, setZoomTarget);
-    bindKnob(el.knobFocus, () => st.focus, setFocus);
+    el.zoomRange.addEventListener('input', () => setZoomTarget(+el.zoomRange.value / 1000));
+    el.zoomRange.addEventListener('pointerdown', () => { if (micActive()) sfx('click'); });
     el.ends.addEventListener('pointerdown', onEndDown);
 
     window.addEventListener('keydown', (e) => {

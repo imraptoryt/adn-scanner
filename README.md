@@ -32,7 +32,7 @@ Messages acceptés par le site : `{ action: 'open', fresh: false }` (mettre `fre
 | Où | Quoi |
 |----|------|
 | `js/data.js` | `PROFILE_MODE` (`'fixed'` = toujours `FIXED_PROFILE_ID`, par défaut Mila Sorokina · `'random'` = tirage au sort), profils, `DEATH_YEARS_AGO`, messages du séquençage |
-| `js/app.js` (haut du fichier) | `TOTAL_PARTICLES`, `REQ_MAG` (×400), `ZOOM_RATE` (vitesse du zoom), `HOLD_TIME` (maintien de l'extracteur), `AUTH_TIME` (maintien de l'empreinte) |
+| `js/app.js` (haut du fichier) | `TOTAL_PARTICLES`, `REQ_MAG` (×400), `HOLD_TIME` (maintien de l'extracteur), `AUTH_TIME` (maintien de l'empreinte) |
 | `js/audio.js` | sons synthétisés (volume `VOL`) |
 | `css/style.css` | couleur d'accent `--acc` (#FF8A1F) |
 
